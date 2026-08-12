@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>뱅크샐러드 스타일 - 간편 가계부</title>
+    <!-- Chart.js 및 FontAwesome -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        banksalad: {
+                            green: '#00C73C',
+                            dark: '#0F172A',
+                            bg: '#F8FAFC',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .view { display: none; }
+        .view.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-slate-100 flex justify-center min-h-screen">
+    
+    <div class="w-full max-w-md bg-banksalad-bg min-h-screen flex flex-col relative shadow-xl">
+        <!-- 헤더 -->
+        <header class="bg-white sticky top-0 z-10 px-5 py-4 flex items-center justify-between shadow-sm">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-banksalad-green rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                    B
+                </div>
+                <span class="font-bold text-xl text-slate-900 tracking-tight">banksalad</span>
+            </div>
+            <button onclick="fetchDataFromSheet()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full font-medium transition">
+                <i class="fa-solid fa-rotate-right mr-1"></i>동기화
+            </button>
+        </header>
+
+        <!-- 메인 콘텐츠 영역 -->
+        <main class="flex-1 p-5 pb-24 overflow-y-auto">
+            
+            <!-- 1. 지출 입력 뷰 -->
+            <section id="view-input" class="view active">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <h2 class="text-lg font-bold text-slate-900 mb-6">새로운 지출 기록</h2>
+                    
+                    <form id="expense-form" onsubmit="handleExpenseSubmit(event)" class="space-y-6">
+                        <!-- 금액 입력 -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-500 mb-2">얼마를 쓰셨나요?</label>
+                            <div class="relative">
+                                <input type="number" id="input-amount" placeholder="0" required 
+                                       class="w-full text-right text-3xl font-bold text-slate-900 border-b-2 border-slate-200 focus:border-banksalad-green focus:outline-none pb-2 pr-8 bg-transparent transition-colors placeholder:text-slate-300">
+                                <span class="absolute right-0 bottom-3 text-lg font-bold text-slate-900">원</span>
+                            </div>
+                        </div>
+
+                        <!-- 카테고리 선택 -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-500 mb-2">어디에 쓰셨나요?</label>
+                            <div class="grid grid-cols-3 gap-3" id="category-container">
+                                <button type="button" class="category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all" onclick="selectCategory(this, '식비')">
+                                    <i class="fa-solid fa-utensils text-slate-400 text-xl"></i>
+                                    <span class="text-sm font-medium text-slate-600">식비</span>
+                                </button>
+                                <button type="button" class="category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all" onclick="selectCategory(this, '교통')">
+                                    <i class="fa-solid fa-bus text-slate-400 text-xl"></i>
+                                    <span class="text-sm font-medium text-slate-600">교통</span>
+                                </button>
+                                <button type="button" class="category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all" onclick="selectCategory(this, '쇼핑')">
+                                    <i class="fa-solid fa-bag-shopping text-slate-400 text-xl"></i>
+                                    <span class="text-sm font-medium text-slate-600">쇼핑</span>
+                                </button>
+                                <button type="button" class="category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all" onclick="selectCategory(this, '주거')">
+                                    <i class="fa-solid fa-house text-slate-400 text-xl"></i>
+                                    <span class="text-sm font-medium text-slate-600">주거</span>
+                                </button>
+                                <button type="button" class="category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all" onclick="selectCategory(this, '여가')">
+                                    <i class="fa-solid fa-film text-slate-400 text-xl"></i>
+                                    <span class="text-sm font-medium text-slate-600">여가</span>
+                                </button>
+                                <button type="button" class="category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all" onclick="selectCategory(this, '기타')">
+                                    <i class="fa-solid fa-box text-slate-400 text-xl"></i>
+                                    <span class="text-sm font-medium text-slate-600">기타</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="submit-btn" class="w-full bg-banksalad-green hover:bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-md transition-colors mt-4 flex justify-center items-center">
+                            <span>저장하기</span>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- 2. 주별 내역 뷰 -->
+            <section id="view-weekly" class="view">
+                <div class="flex justify-between items-end mb-4">
+                    <h3 id="week-title" class="text-xl font-bold text-slate-900">최근 내역</h3>
+                    <span id="total-count" class="text-sm text-slate-500">총 0건</span>
+                </div>
+                
+                <div id="weekly-expense-list" class="space-y-3">
+                    <div class="text-center py-10 text-slate-400">데이터를 불러오는 중입니다...</div>
+                </div>
+            </section>
+
+            <!-- 3. 월별 통계 뷰 -->
+            <section id="view-monthly" class="view">
+                <h3 class="text-xl font-bold text-slate-900 mb-4">월별 소비 리포트</h3>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="mb-4">
+                        <p class="text-sm text-slate-500">총 지출</p>
+                        <p id="monthly-total" class="text-2xl font-bold text-slate-900">0원</p>
+                    </div>
+                    <div class="relative h-64 w-full">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </section>
+            
+        </main>
+
+        <!-- 하단 탭 바 -->
+        <nav class="absolute bottom-0 w-full bg-white border-t border-slate-100 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <div class="flex justify-around items-center py-2 px-2">
+                <button class="nav-item w-16 py-2 flex flex-col items-center gap-1 text-banksalad-green font-bold" data-target="input" onclick="switchTab('input', this)">
+                    <i class="fa-solid fa-plus-circle text-xl"></i>
+                    <span class="text-[10px]">입력</span>
+                </button>
+                <button class="nav-item w-16 py-2 flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 transition" data-target="weekly" onclick="switchTab('weekly', this)">
+                    <i class="fa-solid fa-list-check text-xl"></i>
+                    <span class="text-[10px]">내역</span>
+                </button>
+                <button class="nav-item w-16 py-2 flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 transition" data-target="monthly" onclick="switchTab('monthly', this)">
+                    <i class="fa-solid fa-chart-pie text-xl"></i>
+                    <span class="text-[10px]">월별 통계</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        // =========================================================
+        // ⚠️ 아래 큰따옴표 안에 생성하신 구글 앱스크립트 웹앱 URL을 입력하세요.
+        // =========================================================
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqXlq9ScKAQhFg-kf2F9xqwdZINiL9zkvfJeVvSgRD97svK7J9tPtRPSt_hZeisttQ/exec";
+
+        let currentCategory = '';
+        let localExpenseData = [];
+        let chartInstance = null;
+
+        // 아이콘 매핑
+        const categoryIcons = {
+            '식비': { icon: 'fa-utensils', bg: 'bg-orange-50', text: 'text-orange-500' },
+            '교통': { icon: 'fa-bus', bg: 'bg-blue-50', text: 'text-blue-500' },
+            '쇼핑': { icon: 'fa-bag-shopping', bg: 'bg-purple-50', text: 'text-purple-500' },
+            '주거': { icon: 'fa-house', bg: 'bg-green-50', text: 'text-green-500' },
+            '여가': { icon: 'fa-film', bg: 'bg-pink-50', text: 'text-pink-500' },
+            '기타': { icon: 'fa-box', bg: 'bg-slate-100', text: 'text-slate-500' }
+        };
+
+        // 카테고리 선택
+        function selectCategory(element, category) {
+            currentCategory = category;
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.className = 'category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all';
+                btn.querySelector('i').classList.replace('text-banksalad-green', 'text-slate-400');
+                btn.querySelector('span').classList.replace('text-banksalad-green', 'text-slate-600');
+                btn.querySelector('span').classList.remove('font-bold');
+            });
+
+            element.className = 'category-btn border-2 border-banksalad-green bg-green-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all shadow-sm';
+            element.querySelector('i').classList.replace('text-slate-400', 'text-banksalad-green');
+            element.querySelector('span').classList.replace('text-slate-600', 'text-banksalad-green');
+            element.querySelector('span').classList.add('font-bold');
+        }
+
+        // 탭 전환
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+            document.getElementById('view-' + tabId).classList.add('active');
+
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.className = 'nav-item w-16 py-2 flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 transition';
+            });
+            element.className = 'nav-item w-16 py-2 flex flex-col items-center gap-1 text-banksalad-green font-bold';
+
+            if(tabId === 'weekly') renderExpenseList();
+            if(tabId === 'monthly') renderChart();
+        }
+
+        // 지출 내역 제출 (Google Apps Script 연동)
+        async function handleExpenseSubmit(e) {
+            e.preventDefault();
+            const amountInput = document.getElementById('input-amount');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            if (!currentCategory) {
+                alert('카테고리를 선택해주세요!');
+                return;
+            }
+
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+
+            const payload = {
+                type: '지출',
+                date: dateStr,
+                category: currentCategory,
+                amount: Number(amountInput.value),
+                description: `${currentCategory} 지출`,
+                paymentMethod: '카드'
+            };
+
+            // 버튼 로딩 상태
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> 저장 중...`;
+
+            try {
+                // Apps Script CORS 우회를 위해 URLSearchParams 또는 no-cors 활용
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                alert('구글 시트에 성공적으로 저장되었습니다!');
+                
+                // 프론트엔드 임시 로컬 데이터 추가
+                localExpenseData.unshift(payload);
+                
+                // 폼 초기화
+                amountInput.value = '';
+                
+                // 내역 탭으로 이동
+                switchTab('weekly', document.querySelector('.nav-item[data-target="weekly"]'));
+            } catch (error) {
+                console.error('Save Error:', error);
+                alert('저장 중 오류가 발생했습니다.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<span>저장하기</span>`;
+            }
+        }
+
+        // 구글 시트 데이터 불러오기 (GET)
+        async function fetchDataFromSheet() {
+            if(!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("YOUR_GOOGLE_APPS_SCRIPT")) return;
+
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                const data = await response.json();
+                
+                if (Array.isArray(data)) {
+                    localExpenseData = data;
+                    renderExpenseList();
+                }
+            } catch (error) {
+                console.log('시트 데이터를 조회하는 중 오류 발생:', error);
+            }
+        }
+
+        // 내역 리스트 렌더링
+        function renderExpenseList() {
+            const listContainer = document.getElementById('weekly-expense-list');
+            const totalCountEl = document.getElementById('total-count');
+            
+            totalCountEl.textContent = `총 ${localExpenseData.length}건`;
+
+            if (localExpenseData.length === 0) {
+                listContainer.innerHTML = `<div class="text-center py-10 text-slate-400">기록된 내역이 없습니다.</div>`;
+                return;
+            }
+
+            listContainer.innerHTML = localExpenseData.map(item => {
+                const style = categoryIcons[item.category] || categoryIcons['기타'];
+                const formattedAmount = Number(item.amount).toLocaleString();
+                
+                return `
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 ${style.bg} rounded-full flex items-center justify-center ${style.text}">
+                                <i class="fa-solid ${style.icon}"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-900">${item.description || item.category}</div>
+                                <div class="text-xs text-slate-400 mt-0.5">${item.date} • ${item.category}</div>
+                            </div>
+                        </div>
+                        <div class="font-bold text-slate-900">-${formattedAmount}원</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 차트 렌더링
+        function renderChart() {
+            const ctx = document.getElementById('barChart').getContext('2d');
+            
+            // 카테고리별 합계 계산
+            const categoryTotals = { '식비': 0, '교통': 0, '쇼핑': 0, '주거': 0, '여가': 0, '기타': 0 };
+            let grandTotal = 0;
+
+            localExpenseData.forEach(item => {
+                const amt = Number(item.amount) || 0;
+                if (categoryTotals[item.category] !== undefined) {
+                    categoryTotals[item.category] += amt;
+                } else {
+                    categoryTotals['기타'] += amt;
+                }
+                grandTotal += amt;
+            });
+
+            document.getElementById('monthly-total').textContent = `${grandTotal.toLocaleString()}원`;
+
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(categoryTotals),
+                    datasets: [{
+                        data: Object.values(categoryTotals),
+                        backgroundColor: '#00C73C',
+                        borderRadius: 6,
+                        barThickness: 20
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { borderDash: [2, 2] },
+                            ticks: { callback: value => value >= 10000 ? (value/10000) + '만' : value }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // 페이지 로드 시 최초 1회 동기화 시도
+        window.onload = () => {
+            fetchDataFromSheet();
+        };
+    </script>
+</body>
+</html>
