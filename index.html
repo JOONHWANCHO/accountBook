@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>뱅크샐러드 스타일 - 간편 가계부</title>
+    <title>간편 가계부</title>
     <!-- Chart.js 및 FontAwesome -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -22,18 +22,16 @@
                     }
                 }
             }
-        }
-    </script>
+        }</script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         .view { display: none; }
         .view.active { display: block; animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        ::-webkit-scrollbar { display: none; }
-    </style>
+        ::-webkit-scrollbar { display: none; }</style>
 </head>
 <body class="bg-slate-100 flex justify-center min-h-screen">
-    
+
     <div class="w-full max-w-md bg-banksalad-bg min-h-screen flex flex-col relative shadow-xl">
         <!-- 헤더 -->
         <header class="bg-white sticky top-0 z-10 px-5 py-4 flex items-center justify-between shadow-sm">
@@ -43,25 +41,37 @@
                 </div>
                 <span class="font-bold text-xl text-slate-900 tracking-tight">banksalad</span>
             </div>
-            <button onclick="fetchDataFromSheet()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full font-medium transition">
-                <i class="fa-solid fa-rotate-right mr-1"></i>동기화
+            <button onclick="fetchDataFromSheet(true)" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full font-medium transition flex items-center gap-1">
+                <i id="sync-icon" class="fa-solid fa-rotate-right"></i>
+                <span>동기화</span>
             </button>
         </header>
 
         <!-- 메인 콘텐츠 영역 -->
         <main class="flex-1 p-5 pb-24 overflow-y-auto">
-            
-            <!-- 1. 지출 입력 뷰 -->
+
+            <!-- 1. 입력 뷰 (수입/지출 선택 가능) -->
             <section id="view-input" class="view active">
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                    <h2 class="text-lg font-bold text-slate-900 mb-6">새로운 지출 기록</h2>
-                    
+
+                    <!-- 수입 / 지출 토글 탭 -->
+                    <div class="flex bg-slate-100 p-1 rounded-xl mb-6">
+                        <button type="button" id="type-expense-btn" onclick="setTransactionType('지출')"
+                                class="flex-1 py-2 text-sm font-bold rounded-lg bg-white text-slate-900 shadow-sm transition-all">
+                            지출
+                        </button>
+                        <button type="button" id="type-income-btn" onclick="setTransactionType('수입')"
+                                class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 transition-all">
+                            수입
+                        </button>
+                    </div>
+
                     <form id="expense-form" onsubmit="handleExpenseSubmit(event)" class="space-y-6">
                         <!-- 금액 입력 -->
                         <div>
-                            <label class="block text-sm font-medium text-slate-500 mb-2">얼마를 쓰셨나요?</label>
+                            <label id="amount-label" class="block text-sm font-medium text-slate-500 mb-2">얼마를 쓰셨나요?</label>
                             <div class="relative">
-                                <input type="number" id="input-amount" placeholder="0" required 
+                                <input type="number" id="input-amount" placeholder="0" required
                                        class="w-full text-right text-3xl font-bold text-slate-900 border-b-2 border-slate-200 focus:border-banksalad-green focus:outline-none pb-2 pr-8 bg-transparent transition-colors placeholder:text-slate-300">
                                 <span class="absolute right-0 bottom-3 text-lg font-bold text-slate-900">원</span>
                             </div>
@@ -69,33 +79,17 @@
 
                         <!-- 카테고리 선택 -->
                         <div>
-                            <label class="block text-sm font-medium text-slate-500 mb-2">어디에 쓰셨나요?</label>
+                            <label class="block text-sm font-medium text-slate-500 mb-2">카테고리</label>
                             <div class="grid grid-cols-3 gap-3" id="category-container">
-                                <button type="button" class="category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all" onclick="selectCategory(this, '식비')">
-                                    <i class="fa-solid fa-utensils text-slate-400 text-xl"></i>
-                                    <span class="text-sm font-medium text-slate-600">식비</span>
-                                </button>
-                                <button type="button" class="category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all" onclick="selectCategory(this, '교통')">
-                                    <i class="fa-solid fa-bus text-slate-400 text-xl"></i>
-                                    <span class="text-sm font-medium text-slate-600">교통</span>
-                                </button>
-                                <button type="button" class="category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all" onclick="selectCategory(this, '쇼핑')">
-                                    <i class="fa-solid fa-bag-shopping text-slate-400 text-xl"></i>
-                                    <span class="text-sm font-medium text-slate-600">쇼핑</span>
-                                </button>
-                                <button type="button" class="category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all" onclick="selectCategory(this, '주거')">
-                                    <i class="fa-solid fa-house text-slate-400 text-xl"></i>
-                                    <span class="text-sm font-medium text-slate-600">주거</span>
-                                </button>
-                                <button type="button" class="category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all" onclick="selectCategory(this, '여가')">
-                                    <i class="fa-solid fa-film text-slate-400 text-xl"></i>
-                                    <span class="text-sm font-medium text-slate-600">여가</span>
-                                </button>
-                                <button type="button" class="category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all" onclick="selectCategory(this, '기타')">
-                                    <i class="fa-solid fa-box text-slate-400 text-xl"></i>
-                                    <span class="text-sm font-medium text-slate-600">기타</span>
-                                </button>
+                                <!-- 자바스크립트에서 수입/지출에 따라 동적 생성 -->
                             </div>
+                        </div>
+
+                        <!-- 메모/내용 입력 -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-500 mb-2">사용처 / 내용</label>
+                            <input type="text" id="input-desc" placeholder="예: 점심 식사, 월급 등"
+                                   class="w-full text-sm font-medium text-slate-900 border-b border-slate-200 focus:border-banksalad-green focus:outline-none py-2 bg-transparent">
                         </div>
 
                         <button type="submit" id="submit-btn" class="w-full bg-banksalad-green hover:bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-md transition-colors mt-4 flex justify-center items-center">
@@ -105,32 +99,43 @@
                 </div>
             </section>
 
-            <!-- 2. 주별 내역 뷰 -->
+            <!-- 2. 내역 뷰 (수입/지출 구분 표시) -->
             <section id="view-weekly" class="view">
                 <div class="flex justify-between items-end mb-4">
-                    <h3 id="week-title" class="text-xl font-bold text-slate-900">최근 내역</h3>
+                    <h3 class="text-xl font-bold text-slate-900">전체 내역</h3>
                     <span id="total-count" class="text-sm text-slate-500">총 0건</span>
                 </div>
-                
+
                 <div id="weekly-expense-list" class="space-y-3">
                     <div class="text-center py-10 text-slate-400">데이터를 불러오는 중입니다...</div>
                 </div>
             </section>
 
-            <!-- 3. 월별 통계 뷰 -->
+            <!-- 3. 월별 통계 뷰 (수입 vs 지출 요약 리포트) -->
             <section id="view-monthly" class="view">
                 <h3 class="text-xl font-bold text-slate-900 mb-4">월별 소비 리포트</h3>
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                    <div class="mb-4">
-                        <p class="text-sm text-slate-500">총 지출</p>
-                        <p id="monthly-total" class="text-2xl font-bold text-slate-900">0원</p>
+
+                <!-- 수입/지출 총 요약 카드 -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                        <p class="text-xs font-semibold text-blue-500 mb-1">총 수입</p>
+                        <p id="monthly-income-total" class="text-lg font-bold text-slate-900">0원</p>
                     </div>
-                    <div class="relative h-64 w-full">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                        <p class="text-xs font-semibold text-rose-500 mb-1">총 지출</p>
+                        <p id="monthly-expense-total" class="text-lg font-bold text-slate-900">0원</p>
+                    </div>
+                </div>
+
+                <!-- 지출 카테고리 차트 -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <p class="text-sm font-bold text-slate-800 mb-3">지출 카테고리 분석</p>
+                    <div class="relative h-60 w-full">
                         <canvas id="barChart"></canvas>
                     </div>
                 </div>
             </section>
-            
+
         </main>
 
         <!-- 하단 탭 바 -->
@@ -154,42 +159,91 @@
 
     <script>
         // =========================================================
-        // ⚠️ 아래 큰따옴표 안에 생성하신 구글 앱스크립트 웹앱 URL을 입력하세요.
+        // ⚠️ 본인의 Google Apps Script 웹 앱 URL을 입력하세요.
         // =========================================================
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqXlq9ScKAQhFg-kf2F9xqwdZINiL9zkvfJeVvSgRD97svK7J9tPtRPSt_hZeisttQ/exec";
+        const GOOGLE_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
 
+        let currentType = '지출'; // '지출' 또는 '수입'
         let currentCategory = '';
         let localExpenseData = [];
         let chartInstance = null;
 
-        // 아이콘 매핑
-        const categoryIcons = {
-            '식비': { icon: 'fa-utensils', bg: 'bg-orange-50', text: 'text-orange-500' },
-            '교통': { icon: 'fa-bus', bg: 'bg-blue-50', text: 'text-blue-500' },
-            '쇼핑': { icon: 'fa-bag-shopping', bg: 'bg-purple-50', text: 'text-purple-500' },
-            '주거': { icon: 'fa-house', bg: 'bg-green-50', text: 'text-green-500' },
-            '여가': { icon: 'fa-film', bg: 'bg-pink-50', text: 'text-pink-500' },
-            '기타': { icon: 'fa-box', bg: 'bg-slate-100', text: 'text-slate-500' }
+        // 카테고리 옵션 정의
+        const categories = {
+            '지출': [
+                { name: '식비', icon: 'fa-utensils', bg: 'bg-orange-50', text: 'text-orange-500' },
+                { name: '교통', icon: 'fa-bus', bg: 'bg-blue-50', text: 'text-blue-500' },
+                { name: '쇼핑', icon: 'fa-bag-shopping', bg: 'bg-purple-50', text: 'text-purple-500' },
+                { name: '주거', icon: 'fa-house', bg: 'bg-emerald-50', text: 'text-emerald-500' },
+                { name: '여가', icon: 'fa-film', bg: 'bg-pink-50', text: 'text-pink-500' },
+                { name: '기타', icon: 'fa-box', bg: 'bg-slate-100', text: 'text-slate-500' }
+            ],
+            '수입': [
+                { name: '월급', icon: 'fa-money-bill-wave', bg: 'bg-green-50', text: 'text-green-600' },
+                { name: '부수입', icon: 'fa-chart-line', bg: 'bg-cyan-50', text: 'text-cyan-600' },
+                { name: '용돈', icon: 'fa-hand-holding-dollar', bg: 'bg-amber-50', text: 'text-amber-600' },
+                { name: '금융', icon: 'fa-piggy-bank', bg: 'bg-indigo-50', text: 'text-indigo-600' },
+                { name: '기타', icon: 'fa-wallet', bg: 'bg-slate-100', text: 'text-slate-500' }
+            ]
         };
 
+        // 수입/지출 선택 토글
+        function setTransactionType(type){
+            currentType = type;
+            const expenseBtn = document.getElementById('type-expense-btn');
+            const incomeBtn = document.getElementById('type-income-btn');
+            const amountLabel = document.getElementById('amount-label');
+
+            if (type === '지출') {
+                expenseBtn.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-white text-slate-900 shadow-sm transition-all";
+                incomeBtn.className = "flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 transition-all";
+                amountLabel.textContent = "얼마를 쓰셨나요?";
+            } else {
+                incomeBtn.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-white text-blue-600 shadow-sm transition-all";
+                expenseBtn.className = "flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 transition-all";
+                amountLabel.textContent = "얼마를 버셨나요?";
+            }
+
+            renderCategoryGrid();
+        }
+
+        // 카테고리 그리드 UI 생성
+        function renderCategoryGrid(){
+            const container = document.getElementById('category-container');
+            container.innerHTML = '';
+            currentCategory = '';
+
+            categories[currentType].forEach(cat => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-3 flex flex-col items-center gap-1.5 transition-all';
+                btn.onclick = () => selectCategory(btn, cat.name);
+                btn.innerHTML = `
+                    <i class="fa-solid ${cat.icon} text-slate-400 text-lg"></i>
+                    <span class="text-xs font-medium text-slate-600">${cat.name}</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
         // 카테고리 선택
-        function selectCategory(element, category) {
-            currentCategory = category;
+        function selectCategory(element, categoryName){
+            currentCategory = categoryName;
             document.querySelectorAll('.category-btn').forEach(btn => {
-                btn.className = 'category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all';
+                btn.className = 'category-btn border-2 border-slate-100 bg-slate-50 rounded-xl py-3 flex flex-col items-center gap-1.5 transition-all';
                 btn.querySelector('i').classList.replace('text-banksalad-green', 'text-slate-400');
                 btn.querySelector('span').classList.replace('text-banksalad-green', 'text-slate-600');
                 btn.querySelector('span').classList.remove('font-bold');
             });
 
-            element.className = 'category-btn border-2 border-banksalad-green bg-green-50 rounded-xl py-4 flex flex-col items-center gap-2 transition-all shadow-sm';
+            element.className = 'category-btn border-2 border-banksalad-green bg-green-50 rounded-xl py-3 flex flex-col items-center gap-1.5 transition-all shadow-sm';
             element.querySelector('i').classList.replace('text-slate-400', 'text-banksalad-green');
             element.querySelector('span').classList.replace('text-slate-600', 'text-banksalad-green');
             element.querySelector('span').classList.add('font-bold');
         }
 
-        // 탭 전환
-        function switchTab(tabId, element) {
+        // 탭 전환시 자동 연동
+        function switchTab(tabId, element){
             document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
             document.getElementById('view-' + tabId).classList.add('active');
 
@@ -202,12 +256,13 @@
             if(tabId === 'monthly') renderChart();
         }
 
-        // 지출 내역 제출 (Google Apps Script 연동)
-        async function handleExpenseSubmit(e) {
+        // 구글 시트 저장 (POST)
+        async function handleExpenseSubmit(e){
             e.preventDefault();
             const amountInput = document.getElementById('input-amount');
+            const descInput = document.getElementById('input-desc');
             const submitBtn = document.getElementById('submit-btn');
-            
+
             if (!currentCategory) {
                 alert('카테고리를 선택해주세요!');
                 return;
@@ -217,20 +272,18 @@
             const dateStr = today.toISOString().split('T')[0];
 
             const payload = {
-                type: '지출',
+                type: currentType,
                 date: dateStr,
                 category: currentCategory,
                 amount: Number(amountInput.value),
-                description: `${currentCategory} 지출`,
-                paymentMethod: '카드'
+                description: descInput.value || `${currentCategory} ${currentType}`,
+                paymentMethod: currentType === '지출' ? '카드' : '계좌이체'
             };
 
-            // 버튼 로딩 상태
             submitBtn.disabled = true;
             submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> 저장 중...`;
 
             try {
-                // Apps Script CORS 우회를 위해 URLSearchParams 또는 no-cors 활용
                 await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
@@ -238,18 +291,17 @@
                     body: JSON.stringify(payload)
                 });
 
-                alert('구글 시트에 성공적으로 저장되었습니다!');
-                
-                // 프론트엔드 임시 로컬 데이터 추가
+                alert('저장되었습니다!');
+
+                // 로컬 데이터 즉시 업데이트
                 localExpenseData.unshift(payload);
-                
-                // 폼 초기화
+
+                // Form reset
                 amountInput.value = '';
-                
-                // 내역 탭으로 이동
+                descInput.value = '';
+
                 switchTab('weekly', document.querySelector('.nav-item[data-target="weekly"]'));
             } catch (error) {
-                console.error('Save Error:', error);
                 alert('저장 중 오류가 발생했습니다.');
             } finally {
                 submitBtn.disabled = false;
@@ -258,86 +310,108 @@
         }
 
         // 구글 시트 데이터 불러오기 (GET)
-        async function fetchDataFromSheet() {
-            if(!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("YOUR_GOOGLE_APPS_SCRIPT")) return;
+        async function fetchDataFromSheet(showAlert = false){
+            if(!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("YOUR_GOOGLE_APPS_SCRIPT")) {
+                if(showAlert) alert('GOOGLE_SCRIPT_URL을 설정해주세요.');
+                return;
+            }
+
+            const syncIcon = document.getElementById('sync-icon');
+            syncIcon.classList.add('fa-spin');
 
             try {
                 const response = await fetch(GOOGLE_SCRIPT_URL);
                 const data = await response.json();
-                
+
                 if (Array.isArray(data)) {
                     localExpenseData = data;
                     renderExpenseList();
+                    renderChart();
+                    if(showAlert) alert('최신 데이터가 동기화되었습니다.');
                 }
             } catch (error) {
-                console.log('시트 데이터를 조회하는 중 오류 발생:', error);
+                console.error('동기화 실패:', error);
+                if(showAlert) alert('동기화에 실패했습니다. Apps Script 배포 상태를 확인해주세요.');
+            } finally {
+                syncIcon.classList.remove('fa-spin');
             }
         }
 
-        // 내역 리스트 렌더링
-        function renderExpenseList() {
+        // 내역 리스트 렌더링 (수입/지출 구분 표시)
+        function renderExpenseList(){
             const listContainer = document.getElementById('weekly-expense-list');
             const totalCountEl = document.getElementById('total-count');
-            
+
             totalCountEl.textContent = `총 ${localExpenseData.length}건`;
 
             if (localExpenseData.length === 0) {
-                listContainer.innerHTML = `<div class="text-center py-10 text-slate-400">기록된 내역이 없습니다.</div>`;
+                listContainer.innerHTML = `<div class="text-center py-10 text-slate-400">내역이 없습니다.</div>`;
                 return;
             }
 
             listContainer.innerHTML = localExpenseData.map(item => {
-                const style = categoryIcons[item.category] || categoryIcons['기타'];
+                const isIncome = item.type === '수입';
+                const categoryList = categories[isIncome ? '수입' : '지출'];
+                const matchedCat = categoryList.find(c => c.name === item.category) || { icon: 'fa-wallet', bg: 'bg-slate-100', text: 'text-slate-500' };
+
                 const formattedAmount = Number(item.amount).toLocaleString();
-                
+                const amountClass = isIncome ? 'text-blue-600 font-bold' : 'text-slate-900 font-bold';
+                const prefix = isIncome ? '+' : '-';
+
                 return `
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                         <div class="flex items-center space-x-4">
-                            <div class="w-12 h-12 ${style.bg} rounded-full flex items-center justify-center ${style.text}">
-                                <i class="fa-solid ${style.icon}"></i>
+                            <div class="w-11 h-11 ${matchedCat.bg} rounded-full flex items-center justify-center ${matchedCat.text}">
+                                <i class="fa-solid ${matchedCat.icon}"></i>
                             </div>
                             <div>
                                 <div class="font-bold text-slate-900">${item.description || item.category}</div>
-                                <div class="text-xs text-slate-400 mt-0.5">${item.date} • ${item.category}</div>
+                                <div class="text-xs text-slate-400 mt-0.5">${item.date} • <span class="${isIncome ? 'text-blue-500 font-medium' : ''}">${item.type}</span> (${item.category})</div>
                             </div>
                         </div>
-                        <div class="font-bold text-slate-900">-${formattedAmount}원</div>
+                        <div class="${amountClass}">${prefix}${formattedAmount}원</div>
                     </div>
                 `;
             }).join('');
         }
 
-        // 차트 렌더링
-        function renderChart() {
+        // 차트 및 월별 통계 렌더링
+        function renderChart(){
             const ctx = document.getElementById('barChart').getContext('2d');
-            
-            // 카테고리별 합계 계산
-            const categoryTotals = { '식비': 0, '교통': 0, '쇼핑': 0, '주거': 0, '여가': 0, '기타': 0 };
-            let grandTotal = 0;
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+            const categoryExpenseTotals = { '식비': 0, '교통': 0, '쇼핑': 0, '주거': 0, '여가': 0, '기타': 0 };
 
             localExpenseData.forEach(item => {
                 const amt = Number(item.amount) || 0;
-                if (categoryTotals[item.category] !== undefined) {
-                    categoryTotals[item.category] += amt;
+                if (item.type === '수입') {
+                    totalIncome += amt;
                 } else {
-                    categoryTotals['기타'] += amt;
+                    totalExpense += amt;
+                    if (categoryExpenseTotals[item.category] !== undefined) {
+                        categoryExpenseTotals[item.category] += amt;
+                    } else {
+                        categoryExpenseTotals['기타'] += amt;
+                    }
                 }
-                grandTotal += amt;
             });
 
-            document.getElementById('monthly-total').textContent = `${grandTotal.toLocaleString()}원`;
+            // 상단 요약 업데이트
+            document.getElementById('monthly-income-total').textContent = `+${totalIncome.toLocaleString()}원`;
+            document.getElementById('monthly-expense-total').textContent = `-${totalExpense.toLocaleString()}원`;
 
             if (chartInstance) chartInstance.destroy();
 
             chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: Object.keys(categoryTotals),
+                    labels: Object.keys(categoryExpenseTotals),
                     datasets: [{
-                        data: Object.values(categoryTotals),
+                        data: Object.values(categoryExpenseTotals),
                         backgroundColor: '#00C73C',
                         borderRadius: 6,
-                        barThickness: 20
+                        barThickness: 18
                     }]
                 },
                 options: {
@@ -356,10 +430,10 @@
             });
         }
 
-        // 페이지 로드 시 최초 1회 동기화 시도
+        // 초기화
         window.onload = () => {
+            renderCategoryGrid();
             fetchDataFromSheet();
-        };
-    </script>
+        };</script>
 </body>
 </html>
