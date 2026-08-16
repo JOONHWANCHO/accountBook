@@ -134,6 +134,14 @@
                         <canvas id="barChart"></canvas>
                     </div>
                 </div>
+
+                <!-- 카테고리별 지출 비율 (NEW) -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 mt-4">
+                    <p class="text-sm font-bold text-slate-800 mb-4">카테고리별 지출 비율</p>
+                    <div id="category-percentage-list" class="space-y-4">
+                        <div class="text-center py-6 text-slate-400 text-sm">지출 내역이 없습니다.</div>
+                    </div>
+                </div>
             </section>
 
         </main>
@@ -179,19 +187,19 @@
         // 카테고리 옵션 정의
         const categories = {
             '지출': [
-                { name: '식비', icon: 'fa-utensils', bg: 'bg-orange-50', text: 'text-orange-500' },
-                { name: '교통', icon: 'fa-bus', bg: 'bg-blue-50', text: 'text-blue-500' },
-                { name: '쇼핑', icon: 'fa-bag-shopping', bg: 'bg-purple-50', text: 'text-purple-500' },
-                { name: '주거', icon: 'fa-house', bg: 'bg-emerald-50', text: 'text-emerald-500' },
-                { name: '여가', icon: 'fa-film', bg: 'bg-pink-50', text: 'text-pink-500' },
-                { name: '기타', icon: 'fa-box', bg: 'bg-slate-100', text: 'text-slate-500' }
+                { name: '식비', icon: 'fa-utensils', bg: 'bg-orange-50', text: 'text-orange-500', bar: '#F97316' },
+                { name: '교통', icon: 'fa-bus', bg: 'bg-blue-50', text: 'text-blue-500', bar: '#3B82F6' },
+                { name: '쇼핑', icon: 'fa-bag-shopping', bg: 'bg-purple-50', text: 'text-purple-500', bar: '#A855F7' },
+                { name: '주거', icon: 'fa-house', bg: 'bg-emerald-50', text: 'text-emerald-500', bar: '#10B981' },
+                { name: '여가', icon: 'fa-film', bg: 'bg-pink-50', text: 'text-pink-500', bar: '#EC4899' },
+                { name: '기타', icon: 'fa-box', bg: 'bg-slate-100', text: 'text-slate-500', bar: '#64748B' }
             ],
             '수입': [
-                { name: '월급', icon: 'fa-money-bill-wave', bg: 'bg-green-50', text: 'text-green-600' },
-                { name: '부수입', icon: 'fa-chart-line', bg: 'bg-cyan-50', text: 'text-cyan-600' },
-                { name: '용돈', icon: 'fa-hand-holding-dollar', bg: 'bg-amber-50', text: 'text-amber-600' },
-                { name: '금융', icon: 'fa-piggy-bank', bg: 'bg-indigo-50', text: 'text-indigo-600' },
-                { name: '기타', icon: 'fa-wallet', bg: 'bg-slate-100', text: 'text-slate-500' }
+                { name: '월급', icon: 'fa-money-bill-wave', bg: 'bg-green-50', text: 'text-green-600', bar: '#16A34A' },
+                { name: '부수입', icon: 'fa-chart-line', bg: 'bg-cyan-50', text: 'text-cyan-600', bar: '#0891B2' },
+                { name: '용돈', icon: 'fa-hand-holding-dollar', bg: 'bg-amber-50', text: 'text-amber-600', bar: '#D97706' },
+                { name: '금융', icon: 'fa-piggy-bank', bg: 'bg-indigo-50', text: 'text-indigo-600', bar: '#4F46E5' },
+                { name: '기타', icon: 'fa-wallet', bg: 'bg-slate-100', text: 'text-slate-500', bar: '#64748B' }
             ]
         };
 
@@ -425,6 +433,46 @@
             }).join('');
         }
 
+        // 카테고리별 지출 비율(%) 렌더링 (NEW)
+        function renderCategoryPercentages(categoryExpenseTotals, totalExpense){
+            const container = document.getElementById('category-percentage-list');
+            const expenseCategoryMeta = categories['지출'];
+
+            // 지출이 있는 카테고리만, 금액 내림차순으로 정렬
+            const entries = Object.entries(categoryExpenseTotals)
+                .filter(([, amount]) => amount > 0)
+                .sort((a, b) => b[1] - a[1]);
+
+            if (entries.length === 0 || totalExpense <= 0) {
+                container.innerHTML = `<div class="text-center py-6 text-slate-400 text-sm">지출 내역이 없습니다.</div>`;
+                return;
+            }
+
+            container.innerHTML = entries.map(([catName, amount]) => {
+                const meta = expenseCategoryMeta.find(c => c.name === catName) || { icon: 'fa-box', text: 'text-slate-500', bar: '#64748B' };
+                const percent = (amount / totalExpense) * 100;
+                const percentDisplay = percent.toFixed(1);
+
+                return `
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid ${meta.icon} ${meta.text} text-sm w-4 text-center"></i>
+                                <span class="text-sm font-bold text-slate-800">${escapeHtml(catName)}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-sm font-bold text-slate-900">${percentDisplay}%</span>
+                                <span class="text-xs text-slate-400 ml-1">${Number(amount).toLocaleString()}원</span>
+                            </div>
+                        </div>
+                        <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all" style="width: ${percent}%; background-color: ${meta.bar};"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         // 차트 및 월별 통계 렌더링
         function renderChart(){
             const ctx = document.getElementById('barChart').getContext('2d');
@@ -450,6 +498,9 @@
             // 상단 요약 업데이트
             document.getElementById('monthly-income-total').textContent = `+${totalIncome.toLocaleString()}원`;
             document.getElementById('monthly-expense-total').textContent = `-${totalExpense.toLocaleString()}원`;
+
+            // 카테고리별 지출 비율(%) 업데이트 (NEW)
+            renderCategoryPercentages(categoryExpenseTotals, totalExpense);
 
             if (chartInstance) chartInstance.destroy();
 
